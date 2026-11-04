@@ -48,7 +48,7 @@ interface MDxPlugin {
 - 持久显示：评分菜单另外提供“一直打开”“一直隐藏”“正常复习”，以 `display:<locator>` 独立保存 `{v: 1, mode: 'open' | 'hidden'}`；正常复习删除该记录，恢复原调度显隐。显示选择不生成评分、不更改到期时间或历史；无需修改 Markdown 语法。固定状态优先于点击、全显/全隐及反转，固定隐藏时点击仅打开菜单，答案保持隐藏。选中状态通过 `aria-pressed` 标记；保存失败保留旧状态并允许重试。重置评分保留显示偏好。未注入持久 store 的独立宿主仍仅在内存保留。
 - 入口：命令 `resetClozeProgress` 或事件 `clozeResetRequested` 清除本文档进度（工具栏重置按钮即通过事件触发）；评分按钮文案显示实际算出的下次间隔。
 
-`MentionProvider`、`AutocompleteProvider` 和 `TagPluginOptions.getTags` 接收用户自己的查询实现。MindOS 的 VFS、附件管理和会话打印由 `@itookit/mdx-adapter` 接入，核心插件不导入内部业务包。
+`MentionProvider`、`AutocompleteProvider` 和 `TagPluginOptions.getTags` 接收用户自己的查询实现。MindOS 的 VFS、附件管理和会话打印由 `@nestos/mdx-adapter` 接入，核心插件不导入内部业务包。
 
 `CoreTitleBarPluginOptions.mountActions` 向现有标题栏右侧挂载宿主通用控件，返回清理函数。`overflowActions: true` 将次要按钮收进原标题栏更多菜单；默认不启用，宿主可按产品需要配置。保留原按钮与回调，标题输入仍负责文件重命名，核心不实现窗口列表和项目导航。
 

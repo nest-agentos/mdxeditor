@@ -1,6 +1,6 @@
-# @itookit/mdxeditor
+# @nestos/mdxeditor
 
-独立仓库 `mushuanli/mdxeditor`，发布名 `@itookit/mdxeditor`。
+独立仓库 `mushuanli/mdxeditor`，发布名 `@nestos/mdxeditor`。
 CodeMirror 6 驱动的 Markdown/MDX 编辑器。编辑/预览双模式、流式渲染、Mermaid/数学公式/PlantUML。
 
 ## Architecture
@@ -20,7 +20,7 @@ src/
 
 ### 公共宿主接口
 
-核心只依赖零应用依赖的 `@itookit/ui-common` 提供通用导航组件。接口定义在 `src/editor/contracts.ts`，从包根导出：
+核心只依赖零应用依赖的 `@nestos/ui-common` 提供通用导航组件。接口定义在 `src/editor/contracts.ts`，从包根导出：
 
 - `AssetProvider`：附件读取，可选上传、清理与 MIME 类型。
 - `StoreFactory` / `ScopedPersistenceStore`：插件持久化，未注入时使用内存。

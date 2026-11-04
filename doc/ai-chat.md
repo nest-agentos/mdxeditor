@@ -17,7 +17,7 @@
   点击当前 Agent 文字展开候选；Escape 收起。图片/文件粘贴加入附件，纯文本保持正常粘贴。
 
 ```ts
-import {AiChatPlugin, type AiChatHost} from '@itookit/mdxeditor';
+import {AiChatPlugin, type AiChatHost} from '@nestos/mdxeditor';
 
 const host: AiChatHost = {
   listTargets: async ({source, signal}) => application.listTargets(source, signal),

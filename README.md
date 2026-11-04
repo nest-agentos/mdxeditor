@@ -1,11 +1,11 @@
-# @itookit/mdxeditor
+# @nestos/mdxeditor
 
-![npm version](https://img.shields.io/npm/v/@itookit/mdxeditor.svg)
-![license](https://img.shields.io/npm/l/@itookit/mdxeditor.svg)
+![npm version](https://img.shields.io/npm/v/@nestos/mdxeditor.svg)
+![license](https://img.shields.io/npm/l/@nestos/mdxeditor.svg)
 
 一个功能强大、由插件驱动、基于 CodeMirror 6 的 MDX 编辑器组件，专为可扩展性和富内容创作而设计。
 
-`@itookit/mdxeditor` 提供了一个完整的解决方案，集成了强大的 CodeMirror 6 编辑核心和一个基于 `marked` 的可扩展渲染器。它通过灵活的插件系统，实现了编辑和预览两种模式，并内置了大量开箱即用的功能。
+`@nestos/mdxeditor` 提供了一个完整的解决方案，集成了强大的 CodeMirror 6 编辑核心和一个基于 `marked` 的可扩展渲染器。它通过灵活的插件系统，实现了编辑和预览两种模式，并内置了大量开箱即用的功能。
 
 ## ✨ 核心特性
 
@@ -26,7 +26,7 @@
   - 强大的**自动完成**框架，支持标签 (`#`)、提及 (`@`) 等。
   - **源码同步**: 在渲染视图上按住 `Ctrl/Cmd` 并双击，可立即跳转到其源码位置。
   - 为挖空填词集成了**间隔重复系统 (SRS)**。
-- **💾 灵活集成**: 通过公开接口接入宿主的保存、附件与持久化服务；不依赖其他 `@itookit/*` 包。
+- **💾 灵活集成**: 通过公开接口接入宿主的保存、附件与持久化服务；不依赖其他 `@nestos/*` 包。
 
 ## 嵌入宿主界面
 
@@ -61,13 +61,13 @@ const editor = await createMDxEditor(mount, {
 
 ```bash
 # 使用 pnpm
-pnpm add @itookit/mdxeditor
+pnpm add @nestos/mdxeditor
 
 # 使用 npm
-npm install @itookit/mdxeditor
+npm install @nestos/mdxeditor
 
 # 使用 yarn
-yarn add @itookit/mdxeditor
+yarn add @nestos/mdxeditor
 ```
 
 ## 🚀 快速上手
@@ -85,9 +85,9 @@ yarn add @itookit/mdxeditor
     在您的 JavaScript 或 TypeScript 文件中，导入并使用 `createMDxEditor` 工厂函数。
 
     ```typescript
-    import { createMDxEditor } from '@itookit/mdxeditor';
+    import { createMDxEditor } from '@nestos/mdxeditor';
     // 引入基础样式，您可以根据需要覆盖它
-    import '@itookit/mdxeditor/style.css';
+    import '@nestos/mdxeditor/style.css';
 
     async function initializeEditor() {
       const container = document.getElementById('editor-container');
@@ -132,7 +132,7 @@ graph TD;
 您可以通过 `plugins` 数组和 `defaultPluginOptions` 对象来管理插件。
 
 ```typescript
-import { createMDxEditor } from '@itookit/mdxeditor';
+import { createMDxEditor } from '@nestos/mdxeditor';
 
 const editor = await createMDxEditor(container, {
   initialContent: '...',
@@ -244,11 +244,11 @@ createMDxEditor(container, {
 
 ## 独立运行与宿主适配
 
-编辑器不依赖其他 `@itookit/*` 包。创建实例只需 DOM 容器与内容；附件、保存和持久化可按需注入公共接口，接口由 TypeScript 结构化匹配，无需继承特定实现。
+编辑器不依赖其他 `@nestos/*` 包。创建实例只需 DOM 容器与内容；附件、保存和持久化可按需注入公共接口，接口由 TypeScript 结构化匹配，无需继承特定实现。
 
 ```typescript
-import { createMDxEditor, type AssetProvider } from '@itookit/mdxeditor';
-import '@itookit/mdxeditor/style.css';
+import { createMDxEditor, type AssetProvider } from '@nestos/mdxeditor';
+import '@nestos/mdxeditor/style.css';
 
 const assets: AssetProvider = {
   async read(name) {
@@ -269,9 +269,9 @@ const editor = await createMDxEditor(document.getElementById('editor-container')
 
 `saveContent` 是宿主自己的保存函数。`EditorHost` 提供可选的打开文档、重命名和通知；`StoreFactory` 提供插件存储，默认使用内存。核心默认按 Markdown 处理，纯文本需显式传入 `contentFormat: 'text'`。
 
-[MindOS](https://github.com/mushuanli/itookit) 使用 `@itookit/mdx-adapter` 的 `createMDxEditor` / `defaultEditorFactory`，接收 `ui-common` 的 `EditorOptions`，校验 namespace/Session 上下文并适配 VFS、附件、插件元数据及文件格式。`AssetManagerUI` 和 `LLMPrintService` 也由适配包导出。外部移动文件后调用适配实例的 `updateNodeId(newPath)`，更新后续保存、附件与元数据的文档路径。
+[MindOS](https://github.com/mushuanli/itookit) 使用 `@nestos/mdx-adapter` 的 `createMDxEditor` / `defaultEditorFactory`，接收 `ui-common` 的 `EditorOptions`，校验 namespace/Session 上下文并适配 VFS、附件、插件元数据及文件格式。`AssetManagerUI` 和 `LLMPrintService` 也由适配包导出。外部移动文件后调用适配实例的 `updateNodeId(newPath)`，更新后续保存、附件与元数据的文档路径。
 
-适配包目前在 monorepo 内使用；独立用户可直接实现核心公共接口。适配包样式：`import '@itookit/mdx-adapter/style.css'`。
+适配包目前在 monorepo 内使用；独立用户可直接实现核心公共接口。适配包样式：`import '@nestos/mdx-adapter/style.css'`。
 
 标签、提及与自动补全也支持用户提供数据：`TagPluginOptions.getTags`、`MentionProvider`、`AutocompleteProvider` 均由核心公开。用户可查询自己的 REST 服务、本地数据或其他存储，再通过 `plugins` 安装插件，无需引入 itookit 的业务服务。`translate` 可接入宿主 i18n；复杂交互可实现 `MDxPlugin`，通过插件上下文使用公开能力。
 
@@ -299,7 +299,7 @@ await editor.destroy();
 | 文档标识 | `documentPath` | 移动文件后调用 `updateDocumentPath(newPath)`；可通过 `onDocumentPathChange` 接收更新 |
 | 本地化 | `locale` / `translate` | 内置 `zh-CN`、`en`，或提供自己的翻译函数 |
 
-以上类型均可从 `@itookit/mdxeditor` 根入口导入。接口采用结构化匹配，用户无需依赖 itookit 的 VFS、LLM 或上下文模块。未配置能力时，相关功能按需省略；核心默认把内容当作 Markdown，纯文本可显式设置 `contentFormat: 'text'`。
+以上类型均可从 `@nestos/mdxeditor` 根入口导入。接口采用结构化匹配，用户无需依赖 itookit 的 VFS、LLM 或上下文模块。未配置能力时，相关功能按需省略；核心默认把内容当作 Markdown，纯文本可显式设置 `contentFormat: 'text'`。
 
 ### 从旧宿主接口迁移
 
@@ -317,7 +317,7 @@ pnpm pack
 npm publish --access public
 ```
 
-包根提供 ESM、CommonJS 和 TypeScript 声明；样式从 `@itookit/mdxeditor/style.css` 导入。源码与测试独立维护于本仓库，MindOS 通过 npm 的固定版本接入。
+包根提供 ESM、CommonJS 和 TypeScript 声明；样式从 `@nestos/mdxeditor/style.css` 导入。源码与测试独立维护于本仓库，MindOS 通过 npm 的固定版本接入。
 
 ### 打印文件名
 

@@ -3,7 +3,7 @@
  */
 
 import {mountTitlebarActions} from './titlebar-actions';
-import {mountTitleBar as mountSharedTitleBar, type ContentTitleBarParts} from '@itookit/ui-common';
+import {mountTitleBar as mountSharedTitleBar, type ContentTitleBarParts} from '@nestos/ui-common';
 import type { MDxPlugin, PluginContext } from '../../core/types';
 import type { MDxEditor } from '../../editor/mdx-editor';
 import type { PluginManager } from '../../core/plugin-manager';

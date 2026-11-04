@@ -1,5 +1,5 @@
 {
-  "name": "@itookit/mdxeditor",
+  "name": "@nestos/mdxeditor",
   "version": "0.6.0",
   "description": "A powerful, plugin-driven MDX editor component based on CodeMirror 6, designed for extensibility and rich content creation.",
   "type": "module",
@@ -65,7 +65,7 @@
     "@codemirror/search": "^6.7.1",
     "@codemirror/state": "^6.7.1",
     "@codemirror/view": "^6.43.5",
-    "@itookit/ui-common": "^0.1.0",
+    "@nestos/ui-common": "^0.1.0",
     "@types/turndown": "^5.0.6",
     "codemirror": "^6.0.2",
     "front-matter": "^4.0.2",
