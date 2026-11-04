@@ -1,0 +1,438 @@
+/**
+ * @file mdx/plugins/ui/titlebar.plugin.ts
+ */
+
+import {mountTitlebarActions} from './titlebar-actions';
+import {mountTitleBar as mountSharedTitleBar, type ContentTitleBarParts} from '@itookit/ui-common';
+import type { MDxPlugin, PluginContext } from '../../core/types';
+import type { MDxEditor } from '../../editor/mdx-editor';
+import type { PluginManager } from '../../core/plugin-manager';
+import { ACTION_ICONS } from '../../utils/icons';
+import { t } from '../../utils/i18n';
+import { copyText } from '../../utils/clipboard';
+/**
+ * 标题栏插件配置选项
+ */
+export interface CoreTitleBarPluginOptions {
+  /** Let a host provide the complete title layout without importing its UI implementation. */
+  mountTitleBar?: (container: HTMLElement, parts: ContentTitleBarParts) => (() => void);
+  /** Customize button presentation and release responsive listeners on teardown. */
+  presentButton?: (id: string, button: HTMLButtonElement) => (() => void) | void;
+  /** Place secondary controls in the existing title bar's More menu. */
+  overflowActions?: boolean;
+  inlineActions?: readonly string[];
+  /** Mount generic host controls in the existing title bar and return their cleanup. */
+  mountActions?: (container: HTMLElement) => (() => void) | void;
+  /** Mount host-owned entries inside the existing More menu. */
+  mountMoreMenu?: (container: HTMLElement, editor: MDxEditor, primary: HTMLElement) => (() => void) | void;
+  /**
+   * Order of buttons inside the More menu, by `data-button-id`. Listed ids come first in the
+   * given order; unlisted core buttons keep their built-in order after them. Hosts declare
+   * this instead of moving nodes around inside the panel.
+   */
+  actionOrder?: string[];
+  /**
+   * 是否启用编辑/阅读模式切换按钮
+   * @default false
+   */
+  enableToggleEditMode?: boolean;
+
+  /**
+   * 切换侧边栏回调函数
+   */
+  onSidebarToggle?: (editor: MDxEditor) => void;
+
+  /**
+   * AI 功能回调函数
+   */
+  aiCallback?: (editor: MDxEditor) => void | Promise<void>;
+
+  /**
+   * 保存回调函数
+   */
+  saveCallback?: (editor: MDxEditor) => void | Promise<void>;
+
+  /**
+   * 自定义打印回调函数
+   */
+  printCallback?: (editor: MDxEditor) => void;
+}
+
+/**
+ * 标题栏核心插件
+ */
+export class CoreTitleBarPlugin implements MDxPlugin {
+  name = 'core:titlebar';
+  private options: CoreTitleBarPluginOptions;
+  private cleanupFns: Array<() => void> = [];
+  private toggleModeBtn: HTMLButtonElement | null = null;
+  private titleEl: HTMLInputElement | null = null;
+  private currentTitle: string = '';
+  private wrapButton: HTMLButtonElement | null = null;
+  private editor: MDxEditor | null = null;
+  private cleanupActions?: () => void;
+  private cleanupTitleBar?: () => void;
+  private cleanupButtons: (() => void)[] = [];
+
+  constructor(options: CoreTitleBarPluginOptions = {}) {
+    this.options = options;
+  }
+
+  install(context: PluginContext): void {
+    const removeSetTitleListener = context.listen('setTitle', ({ title }: { title: string }) => {
+      if (this.titleEl) {
+        this.titleEl.value = title;
+        this.currentTitle = title;
+      }
+    });
+    if (removeSetTitleListener) {
+      this.cleanupFns.push(removeSetTitleListener);
+    }
+
+    const removeRegister = context.on('editorPostInit', (payload: {
+      editor: MDxEditor,
+      pluginManager: PluginManager
+    }) => {
+      this.registerButtons(context, payload);
+    });
+
+    if (removeRegister) {
+      this.cleanupFns.push(removeRegister);
+    }
+
+    const removeRender = context.on('editorPostInit', (payload: {
+      editor: MDxEditor,
+      pluginManager: PluginManager
+    }) => {
+      this.renderTitleBar(context, payload);
+    });
+
+    if (removeRender) {
+      this.cleanupFns.push(removeRender);
+    }
+
+    this.cleanupFns.push(context.listen('lineWrappingChanged', () => this.updateWrapButton()));
+
+    const removeModeChange = context.listen('modeChanged', ({ mode }: { mode: 'edit' | 'render' }) => {
+      this.updateModeButton(mode);
+      this.updateWrapButton();
+    });
+
+    if (removeModeChange) {
+      this.cleanupFns.push(removeModeChange);
+    }
+  }
+
+  /**
+   * 注册按钮
+   */
+  private registerButtons(context: PluginContext, payload: {
+    editor: MDxEditor,
+    pluginManager: PluginManager
+  }): void {
+    const { editor } = payload;
+    this.editor = editor;
+    context.registerTitleBarButton?.({
+      id: 'toggle-line-wrapping',
+      title: this.translate('editor.wrap.label'),
+      icon: ACTION_ICONS.wordWrap,
+      location: 'right',
+      onClick: () => editor.setLineWrapping(!editor.getLineWrapping()),
+    });
+
+    if (this.options.onSidebarToggle) {
+      context.registerTitleBarButton?.({
+        id: 'toggle-sidebar',
+        title: '切换侧边栏',
+        icon: ACTION_ICONS.sidebar,
+        location: 'left',
+        onClick: () => this.options.onSidebarToggle?.(editor),
+      });
+    }
+
+    if (this.options.enableToggleEditMode) {
+      context.registerCommand?.('toggleEditMode', (editor: MDxEditor) => {
+        const currentMode = editor.getMode();
+        const newMode = currentMode === 'edit' ? 'render' : 'edit';
+        editor.switchToMode(newMode);
+      });
+
+      context.registerTitleBarButton?.({
+        id: 'toggle-edit-mode',
+        title: '切换到阅读模式',
+        icon: ACTION_ICONS.read,
+        command: 'toggleEditMode',
+        location: 'left',
+      });
+    }
+
+    if (this.options.aiCallback) {
+      context.registerCommand?.('triggerAI', async (editor: MDxEditor) => {
+        await this.options.aiCallback?.(editor);
+      });
+
+      context.registerTitleBarButton?.({
+        id: 'ai-action',
+        title: this.translate('editor.ai.title'),
+        icon: ACTION_ICONS.ai,
+        command: 'triggerAI',
+        location: 'right',
+      });
+    }
+
+    context.registerTitleBarButton?.({
+      id: 'copy-content',
+      title: this.translate('editor.copyContent'),
+      icon: ACTION_ICONS.copy,
+      location: 'right',
+      onClick: async ({ editor }) => {
+        if (await copyText(editor.getText())) context.notify(this.translate('editor.copySuccess'), 'success');
+        else context.notify(this.translate('editor.copyFailed'), 'error');
+      },
+    });
+
+    if (this.options.saveCallback) {
+      context.registerCommand?.('triggerSave', async (editor: MDxEditor) => {
+        await this.options.saveCallback?.(editor);
+      });
+
+      context.registerTitleBarButton?.({
+        id: 'save-action',
+        title: '保存',
+        icon: ACTION_ICONS.save,
+        command: 'triggerSave',
+        location: 'right',
+      });
+    }
+
+    const printCallback = this.options.printCallback || this.defaultPrintHandler;
+    context.registerCommand?.('handlePrintAction', printCallback);
+
+    context.registerTitleBarButton?.({
+      id: 'print-action',
+      title: '打印',
+      icon: ACTION_ICONS.print,
+      command: 'handlePrintAction',
+      location: 'right',
+    });
+  }
+
+  /**
+   * 渲染标题栏
+   */
+  private renderTitleBar(context: PluginContext, payload: {
+    editor: MDxEditor,
+    pluginManager: PluginManager
+  }): void {
+    const { editor, pluginManager } = payload;
+    this.cleanupTitleBar?.(); this.cleanupTitleBar = undefined;
+    this.cleanupButtons.splice(0).forEach(cleanup => cleanup());
+    const container = editor.container;
+    if (!container) return;
+
+    let titleBar = container.querySelector('.mdx-editor-titlebar') as HTMLElement;
+    if (!titleBar) {
+      titleBar = document.createElement('div');
+      titleBar.className = 'mdx-editor-titlebar';
+      container.insertBefore(titleBar, container.firstChild);
+    }
+
+    const leftGroup = document.createElement('div');
+    titleBar.classList.toggle('mdx-editor-titlebar--compact', !!this.options.overflowActions);
+    leftGroup.className = 'mdx-editor-titlebar__left';
+
+    const titleContainer = document.createElement('div');
+    titleContainer.className = 'mdx-editor-titlebar__title-container';
+    this.currentTitle = editor.config.title || '';
+    this.titleEl = document.createElement('input');
+    this.titleEl.type = 'text';
+    this.titleEl.className = 'mdx-editor-titlebar__title';
+    this.titleEl.value = this.currentTitle;
+    this.titleEl.spellcheck = false;
+
+    const doRename = async () => {
+      const newTitle = this.titleEl!.value.trim();
+      if (!newTitle || newTitle === this.currentTitle) {
+        this.titleEl!.value = this.currentTitle;
+        return;
+      }
+      const path = editor.config.documentPath;
+      const rename = editor.config.host?.renameDocument;
+      if (!rename || !path) { this.titleEl!.value = this.currentTitle; return; }
+      try {
+        const result = await rename(path, newTitle);
+        editor.updateDocumentPath(result.path);
+        editor.setTitle(result.title);
+      } catch {
+        this.titleEl!.value = this.currentTitle;
+      }
+    };
+
+    let pendingRename: Promise<void> | undefined;
+    this.titleEl.addEventListener('blur', () => {
+      pendingRename = doRename();
+    });
+    this.titleEl.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        this.titleEl!.blur();
+      } else if (e.key === 'Escape') {
+        this.titleEl!.value = this.currentTitle;
+        this.titleEl!.blur();
+      }
+    });
+
+    titleContainer.appendChild(this.titleEl);
+
+    const rightGroup = document.createElement('div');
+    rightGroup.className = 'mdx-editor-titlebar__right';
+
+    // 使用 DocumentFragment 批量添加按钮
+    const leftFragment = document.createDocumentFragment();
+    const rightFragment = document.createDocumentFragment();
+
+    const buttons = pluginManager.getTitleBarButtons();
+
+    buttons.forEach(btnConfig => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'mdx-editor-titlebar__button';
+      button.title = btnConfig.title || btnConfig.id;
+      button.setAttribute('aria-label', button.title);
+      button.setAttribute('data-button-id', btnConfig.id);
+
+      if (typeof btnConfig.icon === 'string') {
+        button.innerHTML = btnConfig.icon;
+      } else if (btnConfig.icon instanceof HTMLElement) {
+        button.appendChild(btnConfig.icon.cloneNode(true));
+      }
+
+      const cleanup = this.options.presentButton?.(btnConfig.id, button);
+      const label = document.createElement('span'); label.className = 'mdx-editor-titlebar__action-label'; label.textContent = button.title; button.append(label);
+      if (cleanup) this.cleanupButtons.push(cleanup);
+
+      // Preserve a browser preview selection when the AI button is pressed.
+      if (btnConfig.id === 'ai-action') button.onmousedown = event => {
+        if (this.titleEl !== button.ownerDocument.activeElement) event.preventDefault();
+      };
+      button.onclick = async () => {
+        if (button.disabled) return;
+        button.disabled = true;
+        try {
+          // Clicking a button blurs the title input first; wait for the rename to sync path and title.
+          await pendingRename;
+          if (btnConfig.onClick) {
+            await btnConfig.onClick({ editor, context, pluginManager });
+          } else if (btnConfig.command) {
+            const command = pluginManager.getCommand(btnConfig.command);
+            if (command) await command(editor);
+          }
+        } catch (error) {
+          console.error(`[TitleBarPlugin] Button "${btnConfig.id}" failed:`, error);
+        } finally { button.disabled = false; }
+      };
+
+      // 添加到对应的 Fragment
+      if (btnConfig.location === 'right' || this.options.overflowActions && !['toggle-sidebar', 'toggle-edit-mode'].includes(btnConfig.id)) {
+        rightFragment.appendChild(button);
+      } else {
+        leftFragment.appendChild(button);
+      }
+
+      if (btnConfig.id === 'toggle-line-wrapping') this.wrapButton = button;
+      if (btnConfig.id === 'toggle-edit-mode') {
+        this.toggleModeBtn = button;
+      }
+    });
+
+    this.updateWrapButton();
+    this.updateModeButton(editor.getMode());
+
+    // 一次性添加所有按钮
+    leftGroup.appendChild(leftFragment);
+    leftGroup.appendChild(titleContainer);
+    this.cleanupActions?.();
+    this.cleanupActions = mountTitlebarActions(rightGroup, rightFragment, {overflow: this.options.overflowActions,
+      inlineActions: this.options.inlineActions ?? ['copy-content', 'save-action'],
+      label: this.translate('editor.moreActions'), mount: this.options.mountActions, order: this.options.actionOrder,
+      mountMore: this.options.mountMoreMenu ? (container, primary) => this.options.mountMoreMenu!(container, editor, primary) : undefined});
+
+    // 清空并重建标题栏
+    titleBar.innerHTML = '';
+    titleBar.appendChild(leftGroup);
+    titleBar.appendChild(rightGroup);
+    this.mountHostTitleBar(titleBar, leftGroup, rightGroup, editor);
+
+    if (buttons.length === 0 && !this.titleEl.value) {
+      titleBar.style.display = 'none';
+    } else {
+      titleBar.style.display = '';
+    }
+  }
+
+  private mountHostTitleBar(root: HTMLElement, left: HTMLElement, right: HTMLElement, editor: MDxEditor): void {
+    const slot = document.createElement('div'); slot.dataset.titlebarSlot = ''; root.prepend(slot); root.dataset.hostTitlebar = 'true';
+    const back = left.querySelector<HTMLElement>('[data-button-id=toggle-sidebar]') ?? undefined;
+    const modeToggle = left.querySelector<HTMLElement>('[data-button-id=toggle-edit-mode]') ?? undefined;
+    const menu = right.querySelector<HTMLElement>('.mdx-editor-titlebar__menu') ?? undefined;
+    back?.classList.add('ui-nav-button'); menu?.querySelector('summary')?.classList.add('ui-nav-button');
+    const parts = {title: this.titleEl!, back, modeToggle, menu,
+      menuBody: menu?.querySelector<HTMLElement>('.mdx-editor-titlebar__menu-actions') ?? undefined,
+      actions: [...left.querySelectorAll<HTMLElement>('button')].filter(button => button !== back && button !== modeToggle),
+      trailing: [...right.children].filter((element): element is HTMLElement => element instanceof HTMLElement && element !== menu),
+      editable: !!editor.config.host?.renameDocument};
+    let release: () => void;
+    if (this.options.mountTitleBar) release = this.options.mountTitleBar(slot, parts);
+    else {const view = mountSharedTitleBar(slot, parts); view.update({title: this.currentTitle}); release = view.destroy;}
+    this.cleanupTitleBar = () => {release(); slot.remove(); delete root.dataset.hostTitlebar;};
+  }
+
+  private translate(key: string): string {
+    return this.editor?.config.translate?.(key) ?? t(key, this.editor?.config.locale);
+  }
+
+  private updateWrapButton(): void {
+    if (!this.wrapButton || !this.editor) return;
+    this.wrapButton.setAttribute('aria-pressed', String(this.editor.getLineWrapping()));
+    this.wrapButton.title = this.translate(this.editor.getMode() === 'edit'
+      ? 'editor.wrap.sourceHint' : 'editor.wrap.previewHint');
+  }
+
+  private updateModeButton(mode: 'edit' | 'render'): void {
+    if (!this.toggleModeBtn) return;
+
+    if (mode === 'edit') {
+      this.toggleModeBtn.title = '切换到阅读模式';
+      this.toggleModeBtn.innerHTML = ACTION_ICONS.read;
+    } else {
+      this.toggleModeBtn.title = '切换到编辑模式';
+      this.toggleModeBtn.innerHTML = ACTION_ICONS.edit;
+    }
+    this.toggleModeBtn.setAttribute('aria-label', this.toggleModeBtn.title);
+  }
+
+  /**
+   * 默认打印处理函数
+   */
+  private defaultPrintHandler(editor: MDxEditor): void {
+    editor.print({
+      title: editor.config.title || 'Document',
+      showHeader: true,
+    }).catch(err => {
+      console.error('[TitleBarPlugin] Print failed:', err);
+    });
+  }
+
+  destroy(): void {
+    this.cleanupTitleBar?.(); this.cleanupTitleBar = undefined;
+    this.cleanupActions?.(); this.cleanupActions = undefined;
+    this.cleanupButtons.splice(0).forEach(cleanup => cleanup());
+    this.cleanupFns.forEach(fn => fn());
+    this.cleanupFns = [];
+    this.toggleModeBtn = null;
+    this.wrapButton = null;
+    this.editor = null;
+    this.titleEl = null;
+    this.currentTitle = '';
+  }
+}

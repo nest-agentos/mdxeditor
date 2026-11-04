@@ -1,0 +1,15 @@
+# Study creation and recovery
+
+`StudyHost.creation` is optional. The standalone editor owns the form, preview and lifecycle; the host owns generation, authorization, storage and saving notes. Import `StudyCreation`, `StudyCreationState` and `StudyGenerationRequest` from the package root. No application service, account model, Session API or persistence backend is required by the editor.
+
+`draftStore.load(signal)`, `draftStore.save(state)` and `draftStore.clear()` checkpoint unsaved form state. State includes a stable draft ID, source, instructions, edited result, selected destination and generation target, and an optional pending operation ID. The host must isolate this data by the authenticated user and appropriate editor scope. Inputs are checkpointed without saving a note. Failed checkpoints keep the form editable and show a recovery warning; logs omit field values.
+
+When a view is reconstructed, it can reopen the saved draft. If `resumeGeneration` is available and the checkpoint contains a pending operation ID, the editor asks the host to observe that original operation. It never calls `generate` to replay the request. The host decides how to read results; only the resulting draft text enters the editable form.
+
+Explicit cancellation, dialog close, successful save, and clearing the form discard recovery state. A `pagehide` followed by host teardown preserves the checkpoint. In that case the generation signal is aborted with `{code: 'STUDY_DRAFT_SUSPENDED'}` so a host can preserve an already accepted background operation. A later `pageshow` restores normal explicit-close behavior. A crash cannot execute cleanup: the last successfully stored checkpoint remains available according to the host's storage guarantees.
+
+The result is checkpointed before preview rendering. Preview rendering and a late generation transport reply must not keep a completed generation in the busy state. A new document receives a new draft ID; retries and recovery retain the original draft and operation identities.
+
+`creation.directories.list(parent?, signal?)` optionally supplies save destinations independently of the learning catalog. The picker calls it on demand, shows root candidates before deeper enumeration completes, and preserves opaque directory IDs. Hosts without this capability retain the `StudyHost.list` fallback. The host also owns filename extension policy; the standalone form passes the entered name to `creation.save`.
+
+Saving uses a continuous-entry workflow. `save(draft)` may return `{label: string}` so the form can display the host's actual saved name or location; existing `Promise<void>` implementations remain supported. Only successful persistence resets the title, source and result, clears the recovery checkpoint, and allocates the next draft ID. Destination, instructions and generation target remain selected. Failed saves keep all work and the original ID for retry. The Save and continue button is disabled while saving, and Close is separate. Optional `generationSaved` metadata work runs independently of the persistence acknowledgement. An untouched empty next form is not restored as an unsaved draft.
