@@ -1,3 +1,4 @@
+@import './content-view.css';
 @import '@nestos/ui-common/navigation.css';
 /* file: mdx/styles/index.css */
 @import './mdx-editor.css';

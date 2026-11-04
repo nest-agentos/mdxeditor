@@ -324,3 +324,32 @@ npm publish --access public
 文件打印默认显示去掉最后一个扩展名的文件名，例如 `简历.mind` 显示为 `简历`。打印选项中的“显示文件名”复选框默认勾选，取消后隐藏文件名标题；显式传入的作者、日期和版本元数据仍可显示。
 
 `PrintOptions.fileName` 指定文件名（优先于 `title`，打印时自动去掉路径和扩展名）；`showFileName: false` 隐藏标题。显式 `title` 可用于自定义文档标题，其内容不进行后缀处理。设置 `fontSize` 会跳过选项对话框，可同时通过 `showFileName` 指定显示策略。
+
+
+## 通用单项与多内容阅读视图
+
+`MDxEditor` 继续提供完整编辑/预览和插件系统；`MDxRenderer` 继续提供独立与流式渲染。新增的 `ContentView` 只负责通用标题、摘要、可点击时间详情、折叠、复制和更多菜单，不解释角色、邮箱或 Session。
+
+```ts
+import {ContentView, ContentReader, ContentListView} from '@nestos/mdxeditor';
+
+const item = new ContentView({title: 'Title', preview: 'Collapsed preview'});
+const reader = new ContentReader(item.body, {format: 'markdown', plugins: []});
+await reader.setText('**Markdown content**');
+item.setCopySource(() => reader.getText(), 'Copy');
+const list = new ContentListView(container, {selection: {
+    run: async (selection, signal) => host.startConversation(selection, signal),
+}});
+list.sync([{id: 'stable-id', view: item}]);
+// Update the same reader to retain its DOM and disclosure state.
+await reader.setText('**Streaming content**', true);
+list.setExpanded(false);
+// The host owns reader/frame lifetimes; the list owns its selection listeners.
+list.destroy(); await reader.destroy(); item.destroy();
+```
+
+`ContentReader` 的 `text` 模式按原文阅读，不创建 CodeMirror，不执行 HTML、远程资源或 Markdown 插件；`markdown` 模式复用 `MDxRenderer`，支持宿主提供的插件、资源与流式更新。正文槽也可挂载完整 `MDxEditor` 或其他宿主内容，列表不会替换正文或改变编辑器语义。
+
+`ContentListView.sync` 按稳定 ID 排列已创建的视图，保留其 DOM 与折叠状态；`layout: 'host'` 将分组布局留给宿主。重复 ID 拒绝且不改变现有列表。`configureSelection` 可替换或移除选区动作，`setActive(false)` 暂停入口并终止在途观察。默认双语控件文案可由 `locale` 或 `labels` 覆盖。
+
+选区回调接收不可变的 `text` 与有序 `items: [{id, text}]`；排除标题、菜单、隐藏内容和折叠正文。仅在点击 AI 按钮时调用回调，失败后的同一选区复用对象；宿主持有创建与提交身份。正文不被复制进诊断，取消信号只属于观察生命周期，不表示取消远端执行。

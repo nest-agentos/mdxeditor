@@ -1,4 +1,6 @@
 const zhCN: Record<string, string> = {
+    'editor.content.expand': '展开', 'editor.content.collapse': '折叠', 'editor.content.details': '查看时间详情',
+    'editor.content.copy': '复制', 'editor.content.more': '更多', 'editor.content.ai': 'AI 新会话',
     'editor.language.failed': '代码高亮加载失败，文件仍可作为纯文本编辑。',
     'editor.language.retry': '重试高亮',
 
@@ -200,6 +202,8 @@ const zhCN: Record<string, string> = {
     'cloze.grade.failed': '保存复习进度失败，请重试',
 };
 const en: Record<string, string> = {
+    'editor.content.expand': 'Expand', 'editor.content.collapse': 'Collapse', 'editor.content.details': 'View timing details',
+    'editor.content.copy': 'Copy', 'editor.content.more': 'More', 'editor.content.ai': 'AI new conversation',
     'editor.language.failed': 'Syntax highlighting could not load. You can still edit as plain text.',
     'editor.language.retry': 'Retry highlighting',
 

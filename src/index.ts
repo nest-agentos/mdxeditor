@@ -118,3 +118,11 @@ export { aiChatAnchorIds } from './plugins/interactions/ai-chat-markers';
 export { StudyView } from './study/view';
 export { extractStudyCards } from './study/cards';
 export type { StudyHost, StudyChange, StudyEntry, StudyDocument, StudyCard, StudyCreation, StudyCreationState, StudyPrompt, StudyDraft, StudyGenerationRequest, StudyGeneration, StudyGenerationFailure, StudyDocuments, StudyPromptOptions, StudyDraftStore } from './study/contracts';
+
+export {ContentView} from './content/view';
+export type {ContentViewOptions, ContentTime} from './content/view';
+export {ContentListView} from './content/list';
+export type {ContentListItem, ContentListOptions} from './content/list';
+export {ContentReader} from './content/reader';
+export type {ContentReaderOptions} from './content/reader';
+export type {ContentSelection, ContentSelectionOptions} from './content/selection';

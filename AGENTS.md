@@ -82,3 +82,6 @@ core:titlebar.mountTitleBar 是可选完整布局端口，交接原标题输入�
 代码文件按 documentPath 后缀或显式 language 选择 CodeMirror language-data 的语言描述，解析器通过 load() 按需加载；未知类型按纯文本处理。contentFormat 显式配置优先；Markdown 保留原行为，超过字节/行数/长行语法预算不加载代码解析器。配置高亮只重配语言 compartment，不改变正文、选区、撤销或 dirty 状态；代次检查阻止旧文件/销毁后的异步结果应用。失败显示可重试提示并记录操作身份、语言名、阶段、结果和耗时，不记录路径、正文或异常原文。
 
 TitleBarPlugin passes the original toggle-edit-mode button through ContentTitleBarParts.modeToggle and excludes it from secondary actions. Keep its command, mode-dependent icon/label and node identity; do not render a second mode switch beside the title.
+
+
+通用阅读框架位于 `src/content/`：ContentView 负责标题/时间详情/折叠/复制/更多菜单，ContentReader 负责纯文本或插件化 Markdown 阅读，ContentListView 负责稳定排列及可选选区动作的生命周期。业务角色、默认折叠策略、分页和 Session 创建留在宿主。正文槽可挂载完整 MDxEditor，不改变既有编辑、预览和插件接口。选区入口只在明确点击时调用冻结选区回调；排除隐藏正文，失败重试保持选区对象，隐藏/销毁只中止观察。
