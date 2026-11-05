@@ -2,6 +2,7 @@
 import type { MDxPlugin, PluginContext, ScopedPersistenceStore } from '../../core/types';
 import { t } from '../../utils/i18n';
 import { randomUUID } from '../../utils/random';
+import { ACTION_ICONS } from '../../utils/icons';
 import {reviewSnapshot, withReviewHistory} from './review-history';
 import {ClozeDisplayPreferences, setClozeVisible, type ClozeDisplayMode} from './display-state';
 
@@ -470,10 +471,27 @@ export class MemoryPlugin implements MDxPlugin {
     return `${Math.round(intervalDays)}${this.translate(context, 'cloze.unit.day')}`;
   }
 
-  private gradeLabel(grade: number, context: PluginContext, current: SRSCardState | undefined): string {
+  private gradeButtons(grades: number[], context: PluginContext, current: SRSCardState | undefined): HTMLElement {
+    const group = document.createElement('div');
+    group.className = `${this.options.className}__grades`;
     const keys = ['cloze.grade.again', 'cloze.grade.hard', 'cloze.grade.good', 'cloze.grade.easy'];
-    const next = nextReview(current, grade, this.nowMs(), this.options.maxIntervalDays);
-    return `${this.translate(context, keys[grade - 1] ?? 'cloze.grade.good')} (${this.formatInterval(next.interval, context)})`;
+    for (const grade of grades) {
+      const next = nextReview(current, grade, this.nowMs(), this.options.maxIntervalDays);
+      const label = this.translate(context, keys[grade - 1]);
+      const interval = this.formatInterval(next.interval, context);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.grade = String(grade);
+      button.title = `${label} (${interval})`;
+      for (const [part, text] of [['label', label], ['interval', interval]]) {
+        const span = document.createElement('span');
+        span.className = `${this.options.className}__grade-${part}`;
+        span.textContent = text;
+        button.append(span);
+      }
+      group.append(button);
+    }
+    return group;
   }
 
   private showGradingPanel(clozeElement: HTMLElement, context: PluginContext, timeoutDuration: number = 0): void {
@@ -490,10 +508,8 @@ export class MemoryPlugin implements MDxPlugin {
     const current = locator ? this.getCache(context).get(locator) : undefined;
     // Cooling cards keep display actions available without enabling another review.
     const grades = clozeElement.dataset.stateClass === 'is-cooling' ? [] : [1, 2, 3, 4];
-    panel.innerHTML = grades.map(grade => {
-      const label = this.gradeLabel(grade, context, current);
-      return `<button data-grade="${grade}" title="${label}">${label}</button>`;
-    }).join('') + this.displayButtons(clozeElement, context);
+    if (grades.length) panel.append(this.gradeButtons(grades, context, current));
+    panel.append(this.displayButtons(clozeElement, context));
 
     this.bindGradingPanel(panel, clozeElement, context, timeoutDuration);
     clozeElement.appendChild(panel);
@@ -507,7 +523,8 @@ export class MemoryPlugin implements MDxPlugin {
       if (timeout) clearTimeout(timeout);
       const mode = btn.getAttribute('data-display');
       if (mode === 'normal' || mode === 'open' || mode === 'hidden') {
-        await this.changeDisplay(element, mode, context, panel);
+        const next = element.dataset.clozeDisplay === mode ? 'normal' : mode;
+        await this.changeDisplay(element, next, context, panel);
         return;
       }
       const grade = Number(btn.getAttribute('data-grade'));
@@ -517,12 +534,23 @@ export class MemoryPlugin implements MDxPlugin {
     });
   }
 
-  private displayButtons(element: HTMLElement, context: PluginContext): string {
-    return (['normal', 'open', 'hidden'] as const).map(mode => {
-      const label = this.translate(context, `cloze.display.${mode}`);
+  private displayButtons(element: HTMLElement, context: PluginContext): HTMLElement {
+    const group = document.createElement('div');
+    group.className = `${this.options.className}__display-actions`;
+    group.setAttribute('role', 'group');
+    group.setAttribute('aria-label', this.translate(context, 'cloze.display.settings'));
+    for (const mode of ['open', 'hidden'] as const) {
       const selected = (element.dataset.clozeDisplay ?? 'normal') === mode;
-      return `<button type="button" data-display="${mode}" aria-pressed="${selected}" title="${label}">${label}</button>`;
-    }).join('');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.display = mode;
+      button.setAttribute('aria-pressed', String(selected));
+      button.setAttribute('aria-label', this.translate(context, `cloze.display.${mode}`));
+      button.title = this.translate(context, `cloze.display.${mode}${selected ? 'Selected' : 'Hint'}`);
+      button.innerHTML = mode === 'open' ? ACTION_ICONS.pin : ACTION_ICONS.lock;
+      group.append(button);
+    }
+    return group;
   }
 
   private async changeDisplay(element: HTMLElement, mode: ClozeDisplayMode, context: PluginContext, panel: HTMLElement): Promise<void> {

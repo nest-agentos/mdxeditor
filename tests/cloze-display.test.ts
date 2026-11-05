@@ -24,7 +24,8 @@ async function mountEditor(store: ScopedPersistenceStore) {
 
 function selectMode(alpha: HTMLElement, mode: ClozeDisplayMode): void {
     alpha.click();
-    alpha.querySelector<HTMLButtonElement>(`[data-display="${mode}"]`)!.click();
+    const selector = mode === 'normal' ? '[data-display][aria-pressed="true"]' : `[data-display="${mode}"]`;
+    alpha.querySelector<HTMLButtonElement>(selector)!.click();
 }
 
 it('round trips display records independently of the existing grade schema', () => {
@@ -149,7 +150,7 @@ it('retains the previous display preference after a failed save or removal and p
         selectMode(alpha, 'normal');
         await vi.waitFor(() => expect(errorLog).toHaveBeenCalledTimes(2));
         expect(alpha.dataset.clozeDisplay).toBe('open');
-        alpha.querySelector<HTMLButtonElement>('[data-display="normal"]')!.click();
+        alpha.querySelector<HTMLButtonElement>('[data-display][aria-pressed="true"]')!.click();
         await vi.waitFor(() => expect(alpha.dataset.clozeDisplay).toBe('normal'));
         expect(JSON.stringify(errorLog.mock.calls)).not.toContain('secret document contents');
         expect(errorLog.mock.calls[0][1]).toMatchObject({operation: 'cloze.display', stage: 'persist', code: 'EACCES', result: 'failure'});
@@ -178,7 +179,7 @@ it('keeps display actions available during cooling without enabling another grad
         expect(alpha.dataset.stateClass).toBe('is-cooling');
         alpha.click(); alpha.click();
         expect(alpha.querySelectorAll('[data-grade]')).toHaveLength(0);
-        expect(alpha.querySelectorAll('[data-display]')).toHaveLength(3);
+        expect(alpha.querySelectorAll('[data-display]')).toHaveLength(2);
         alpha.querySelector<HTMLButtonElement>('[data-display="hidden"]')!.click();
         await vi.waitFor(() => expect(alpha.dataset.clozeDisplay).toBe('hidden'));
         expect(alpha.classList.contains('hidden')).toBe(true);
@@ -241,5 +242,56 @@ it.each(['missing', 'throwing'])('saves display preferences when native randomUU
         expect(randomUUID).not.toHaveBeenCalled();
         const saved = info.mock.calls.find(([message]) => message === '[MemoryPlugin] Display preference saved');
         expect(saved?.[1].operationId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    } finally {await editor.destroy();}
+});
+
+
+it('shows only the active mode beside the answer or placeholder and uses it to open settings', async () => {
+    const store = new MemoryStore();
+    const {alpha, editor} = await mountEditor(store);
+    try {
+        expect(alpha.querySelector('.mdx-cloze__display-indicator')).toBeNull();
+        for (const mode of ['open', 'hidden'] as const) {
+            selectMode(alpha, mode);
+            await vi.waitFor(() => expect(alpha.dataset.clozeDisplay).toBe(mode));
+            const marker = alpha.querySelector<HTMLButtonElement>(':scope > .mdx-cloze__display-indicator')!;
+            expect(marker.type).toBe('button');
+            expect(marker.getAttribute('aria-label')).toBeTruthy();
+            expect(marker.querySelector('svg')).not.toBeNull();
+            expect(marker.closest('.mdx-cloze__content, .mdx-cloze__placeholder')).toBeNull();
+            marker.click();
+            expect(alpha.classList.contains('hidden')).toBe(mode === 'hidden');
+            expect(alpha.querySelector(`[data-display="${mode}"]`)?.getAttribute('aria-pressed')).toBe('true');
+        }
+        selectMode(alpha, 'normal');
+        await vi.waitFor(() => expect(alpha.dataset.clozeDisplay).toBe('normal'));
+        expect(alpha.querySelector('.mdx-cloze__display-indicator')).toBeNull();
+    } finally {await editor.destroy();}
+});
+
+it('places four two-line grades before two mutually exclusive icon toggles and toggles back to normal', async () => {
+    const {alpha, editor} = await mountEditor(new MemoryStore());
+    try {
+        alpha.click();
+        const panel = alpha.querySelector('.mdx-memory__panel')!;
+        expect(panel.firstElementChild?.className).toBe('mdx-memory__grades');
+        expect(panel.lastElementChild?.className).toBe('mdx-memory__display-actions');
+        expect(panel.querySelector('[data-display="normal"]')).toBeNull();
+        expect(panel.querySelectorAll('[aria-pressed="true"]')).toHaveLength(0);
+        expect([...panel.querySelectorAll('[data-grade]')].map(button => button.textContent))
+            .toEqual(['忘记1分钟', '困难5分钟', '一般10分钟', '简单4天']);
+        for (const button of panel.querySelectorAll('[data-display]')) {
+            expect(button.getAttribute('aria-label')).toBeTruthy();
+            expect(button.querySelector('svg')).not.toBeNull();
+            expect(button.textContent).toBe('');
+        }
+        for (const mode of ['open', 'hidden'] as const) {
+            selectMode(alpha, mode);
+            await vi.waitFor(() => expect(alpha.dataset.clozeDisplay).toBe(mode));
+            alpha.click();
+            expect(alpha.querySelectorAll('[aria-pressed="true"]')).toHaveLength(1);
+            alpha.querySelector<HTMLButtonElement>(`[data-display="${mode}"]`)!.click();
+            await vi.waitFor(() => expect(alpha.dataset.clozeDisplay).toBe('normal'));
+        }
     } finally {await editor.destroy();}
 });

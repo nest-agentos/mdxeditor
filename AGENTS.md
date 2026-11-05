@@ -43,7 +43,7 @@ VFS、Session/namespace 校验、文件后缀判断、附件管理 UI 和会话�
 - 折叠状态通过通用 `data-mdx-disclosure-key` 在实例内存保留，核心不解释业务身份；系统/工具角色、摘要和配色属于宿主。
 - 流式更新使用 `StreamingDiffer` 而非整体替换
 - `ScopedPersistenceStore` — 插件私有持久化，由 `createStore()` 二级回退：注入的 `StoreFactory` → 内存（`MemoryStore`）。可选 `entries(prefix)` 用于按 key 加载；不提供的 store 仍按整值读写。
-- 挖空复习状态（`cloze:memory`）以 `card:<locator>` 逐卡写入，payload 带 `v`（`SRS_STORAGE_VERSION`）；历史整份 `_mdx_srs` 在同步时只读加载，实际评分时才迁移被修改的卡片，读取失败的条目保留不删；已有新格式进度优先。打开、临时显隐和渲染不写入进度，重置删除评分记录。持久显示独立使用 `display:<locator>` 的 `{v:1, mode:'open'|'hidden'}`，正常复习删除该偏好；不生成评分/历史，不修改调度，重置评分保留偏好。`locator` 由内容 hash + 同内容出现序号生成（`auto-<hash>-<occurrence>`），`data-cloze-legacy-locator` 供旧 `auto-<n>` 进度迁移。调度函数 `nextReview(state, grade, now, maxIntervalDays)` 是纯函数，时钟通过 `MemoryPluginOptions.now` 注入。
+- 挖空复习状态（`cloze:memory`）以 `card:<locator>` 逐卡写入，payload 带 `v`（`SRS_STORAGE_VERSION`）；历史整份 `_mdx_srs` 在同步时只读加载，实际评分时才迁移被修改的卡片，读取失败的条目保留不删；已有新格式进度优先。打开、临时显隐和渲染不写入进度，重置删除评分记录。持久显示独立使用 `display:<locator>` 的 `{v:1, mode:'open'|'hidden'}`，评分后的图钉/锁图标分别切换固定显示/固定隐藏，再次点击已选图标恢复正常复习并删除该偏好；正文仅在固定时显示可聚焦的对应标记，固定显隐优先于浮动工具栏与点击；不生成评分/历史，不修改调度，重置评分保留偏好。`locator` 由内容 hash + 同内容出现序号生成（`auto-<hash>-<occurrence>`），`data-cloze-legacy-locator` 供旧 `auto-<n>` 进度迁移。调度函数 `nextReview(state, grade, now, maxIntervalDays)` 是纯函数，时钟通过 `MemoryPluginOptions.now` 注入。
 - `AssetResolverPlugin` 通过 `AssetProvider` 读取资源；路径生成统一走 `services/asset-helper.ts`
 - 暗色主题 CSS 同时使用 `[data-theme="dark"]` 和 `@media (prefers-color-scheme: dark)` 选择器，支持手动和系统主题切换
 - Mermaid 默认使用本地依赖且只在出现 `language-mermaid` 块时动态加载；Tauri 构建把其依赖放入独立 `mermaid-runtime` chunk。MathJax 只在渲染结果含 `\\(`/`\\[` 时加载。普通 Markdown 更新不得触发这两个运行时。

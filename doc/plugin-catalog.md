@@ -45,7 +45,7 @@ interface MDxPlugin {
 - 调度：`nextReview(state, grade, now, maxIntervalDays)` 是纯函数（SM-2 变种），`now` 与 `maxIntervalDays`（默认 36500 天）可配置，测试时可注入时钟。
 - 状态：`is-new` / `is-cooling` / `is-learning` / `is-approaching`（已进入提前隐藏窗口但未到期）/ `is-due` / `is-danger` / `is-cleared`。只有 `is-cleared` 与 `is-cooling` 默认可见。
 - 存储：按卡写入 `card:<locator>`，值带 `v`；历史整份 `_mdx_srs` 只读加载，被实际评分的卡片才逐卡迁移，无法解析的条目保留不删；已有新格式进度优先。打开、临时显隐、渲染均不产生评分写入。宿主的 store 不提供 `entries()` 时退化为整值读写。
-- 持久显示：评分菜单另外提供“一直打开”“一直隐藏”“正常复习”，以 `display:<locator>` 独立保存 `{v: 1, mode: 'open' | 'hidden'}`；正常复习删除该记录，恢复原调度显隐。显示选择不生成评分、不更改到期时间或历史；无需修改 Markdown 语法。固定状态优先于点击、全显/全隐及反转，固定隐藏时点击仅打开菜单，答案保持隐藏。选中状态通过 `aria-pressed` 标记；保存失败保留旧状态并允许重试。重置评分保留显示偏好。未注入持久 store 的独立宿主仍仅在内存保留。
+- 持久显示：评分菜单在四个双行评分按钮（等级 / 实际间隔）之后分组提供“固定显示”（图钉）和“固定隐藏”（锁）两个互斥图标，窄屏时设置组换行靠右；再次点击已选图标恢复正常复习，两个图标均未选中表示跟随复习调度。正文仅在固定时显示对应的可聚焦状态图标，位于答案与占位符之外，点击打开设置且不改变显隐；提示说明固定显示不改变复习时间。显示偏好以 `display:<locator>` 独立保存 `{v: 1, mode: 'open' | 'hidden'}`；正常复习删除该记录，恢复原调度显隐。显示选择不生成评分、不更改到期时间或历史；无需修改 Markdown 语法。固定状态优先于点击、全显/全隐及反转，固定隐藏时点击仅打开菜单，答案保持隐藏。选中状态通过 `aria-pressed` 标记；保存失败保留旧状态并允许重试。重置评分保留显示偏好。未注入持久 store 的独立宿主仍仅在内存保留。
 - 入口：命令 `resetClozeProgress` 或事件 `clozeResetRequested` 清除本文档进度（工具栏重置按钮即通过事件触发）；评分按钮文案显示实际算出的下次间隔。
 
 `MentionProvider`、`AutocompleteProvider` 和 `TagPluginOptions.getTags` 接收用户自己的查询实现。MindOS 的 VFS、附件管理和会话打印由 `@nestos/mdx-adapter` 接入，核心插件不导入内部业务包。

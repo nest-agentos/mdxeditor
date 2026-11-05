@@ -1,6 +1,7 @@
 import type {PluginContext, ScopedPersistenceStore} from '../../core/types';
 import {t} from '../../utils/i18n';
 import {randomUUID} from '../../utils/random';
+import {ACTION_ICONS} from '../../utils/icons';
 
 export type ClozeDisplayMode = 'normal' | 'open' | 'hidden';
 export const CLOZE_DISPLAY_PREFIX = 'display:';
@@ -22,6 +23,21 @@ export function storedDisplayMode(mode: ClozeDisplayMode): {v: 1; mode: 'open' |
 export function setClozeVisible(element: Element, visible: boolean): void {
     const mode = element.getAttribute('data-cloze-display');
     element.classList.toggle('hidden', mode === 'hidden' || (mode !== 'open' && !visible));
+}
+
+/** Keep a keyboard-accessible mode indicator outside the hidden answer content. */
+function applyDisplayMode(element: HTMLElement, mode: ClozeDisplayMode, context: PluginContext): void {
+    element.dataset.clozeDisplay = mode;
+    element.querySelector(':scope > .mdx-cloze__display-indicator')?.remove();
+    if (mode === 'normal') return;
+    const indicator = document.createElement('button');
+    indicator.type = 'button';
+    indicator.className = 'mdx-cloze__display-indicator';
+    const key = `cloze.display.${mode}Hint`;
+    indicator.title = context.translate?.(key) ?? t(key);
+    indicator.setAttribute('aria-label', indicator.title);
+    indicator.innerHTML = mode === 'open' ? ACTION_ICONS.pin : ACTION_ICONS.lock;
+    element.append(indicator);
 }
 
 export class ClozeDisplayPreferences {
@@ -67,7 +83,7 @@ export class ClozeDisplayPreferences {
                 const locator = element.dataset.clozeLocator!;
                 if (!this.enumerated && !this.modes.has(locator))
                     await this.loadOne(locator, operationId, started);
-                element.dataset.clozeDisplay = this.modes.get(locator) ?? 'normal';
+                applyDisplayMode(element, this.modes.get(locator) ?? 'normal', this.context);
             }
         } catch (error) { this.report(error, operationId, 'read', started); }
     }
@@ -81,7 +97,7 @@ export class ClozeDisplayPreferences {
             if (value) await this.store.set(key, value); else await this.store.remove(key);
             this.modes.set(locator, mode);
             for (const element of root.querySelectorAll<HTMLElement>('[data-cloze-locator]'))
-                if (element.dataset.clozeLocator === locator) element.dataset.clozeDisplay = mode;
+                if (element.dataset.clozeLocator === locator) applyDisplayMode(element, mode, this.context);
             console.info('[MemoryPlugin] Display preference saved', {operation: 'cloze.display', operationId,
                 stage: 'persist', result: 'success', mode, durationMs: Date.now() - started});
             return true;

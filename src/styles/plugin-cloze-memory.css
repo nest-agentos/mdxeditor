@@ -1,103 +1,147 @@
-/* @file: mdx/styles/plugin-cloze-memory.css
- * Styles for the Memory Plugin with BEM and namespace conventions.
- * Block: mdx-memory
- */
-
-.mdx-memory__panel {
-  display: flex;
+/* Review grades precede the secondary persistent display settings. */
+.mdx-cloze:has(> .mdx-memory__panel) {
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-  padding: 8px;
-  background-color: #fff;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  animation: memoryPanelFadeIn 0.3s ease;
+  width: min(440px, 100%);
+  box-sizing: border-box;
 }
 
-@keyframes memoryPanelFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.mdx-memory__panel {
+  --memory-surface: #fff;
+  --memory-border: #d0d7de;
+  --memory-text: #343b43;
+  --memory-hover: #eef1f5;
+  --memory-selected: #e3edf9;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  flex: 1 0 100%;
+  order: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 8px;
+  background: var(--memory-surface);
+  color: var(--memory-text);
+  border: 1px solid var(--memory-border);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
+}
+
+.mdx-memory__grades {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  flex: 1 1 280px;
+  gap: 6px;
+  min-width: 0;
 }
 
 .mdx-memory__panel button {
-  flex: 1;
-  padding: 8px 12px;
-  border: none;
-  border-radius: 4px;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  font: inherit;
   font-size: 13px;
-  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
-  outline: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.mdx-memory__panel button:focus-visible,
+.mdx-cloze__display-indicator:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.mdx-memory__panel button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.mdx-memory__panel button[data-grade] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  padding-inline: 6px;
   white-space: nowrap;
+  color: var(--grade-color);
+  background: var(--memory-surface);
+  border-color: var(--memory-border);
 }
 
-/* Again - 红色 */
-.mdx-memory__panel button[data-grade="1"] {
-  background-color: #ffebee;
-  color: #c62828;
-  border: 1px solid #ef5350;
+.mdx-memory__grade-label { font-weight: 600; }
+.mdx-memory__grade-interval { font-size: 11px; opacity: 0.8; }
+.mdx-memory__panel button[data-grade="1"] { --grade-color: #b42332; }
+.mdx-memory__panel button[data-grade="2"] { --grade-color: #9a4a00; }
+.mdx-memory__panel button[data-grade="3"] { --grade-color: #237438; }
+.mdx-memory__panel button[data-grade="4"] { --grade-color: #175fb0; }
+
+.mdx-memory__panel button[data-grade]:hover:not(:disabled) {
+  background: var(--memory-hover);
+  border-color: var(--grade-color);
 }
 
-.mdx-memory__panel button[data-grade="1"]:hover {
-  background-color: #ef5350;
-  color: #fff;
-  transform: translateY(-2px);
-  box-shadow: 0 2px 6px rgba(239, 83, 80, 0.3);
+.mdx-memory__display-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
 }
 
-/* Hard - 橙色 */
-.mdx-memory__panel button[data-grade="2"] {
-  background-color: #fff3e0;
-  color: #e65100;
-  border: 1px solid #ff9800;
+.mdx-memory__grades + .mdx-memory__display-actions {
+  padding-left: 10px;
+  border-left: 1px solid var(--memory-border);
 }
 
-.mdx-memory__panel button[data-grade="2"]:hover {
-  background-color: #ff9800;
-  color: #fff;
-  transform: translateY(-2px);
-  box-shadow: 0 2px 6px rgba(255, 152, 0, 0.3);
+.mdx-memory__panel button[data-display] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  background: transparent;
+  color: var(--memory-text);
 }
 
-/* Good - 绿色 */
-.mdx-memory__panel button[data-grade="3"] {
-  background-color: #e8f5e9;
-  color: #2e7d32;
-  border: 1px solid #66bb6a;
+.mdx-memory__panel button[data-display]:hover:not(:disabled) {
+  background: var(--memory-hover);
 }
 
-.mdx-memory__panel button[data-grade="3"]:hover {
-  background-color: #66bb6a;
-  color: #fff;
-  transform: translateY(-2px);
-  box-shadow: 0 2px 6px rgba(102, 187, 106, 0.3);
+.mdx-memory__panel button[data-display][aria-pressed="true"] {
+  background: var(--memory-selected);
+  border-color: currentColor;
 }
 
-/* Easy - 蓝色 */
-.mdx-memory__panel button[data-grade="4"] {
-  background-color: #e3f2fd;
-  color: #1565c0;
-  border: 1px solid #42a5f5;
+/* This marker remains visible beside both the answer and the placeholder. */
+.mdx-cloze__display-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: 3px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  vertical-align: middle;
 }
 
-.mdx-memory__panel button[data-grade="4"]:hover {
-  background-color: #42a5f5;
-  color: #fff;
-  transform: translateY(-2px);
-  box-shadow: 0 2px 6px rgba(66, 165, 245, 0.3);
+.mdx-cloze__display-indicator svg { width: 13px; height: 13px; }
+
+@media print {
+  .mdx-cloze__display-indicator { display: none; }
+  .mdx-cloze:has(> .mdx-memory__panel) { width: auto; }
 }
 
-.mdx-memory__panel button:active {
-  transform: translateY(0);
+@media (max-width: 480px) {
+  .mdx-memory__grades { flex-basis: 100%; }
+  .mdx-memory__grades + .mdx-memory__display-actions {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .mdx-memory__panel button[data-display] { width: 44px; height: 44px; }
 }
 
 /* 记忆等级标记 */
@@ -133,54 +177,30 @@
   content: 'MATURE';
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .mdx-memory__panel {
-    flex-direction: column;
-  }
 
-  .mdx-memory__panel button {
-    width: 100%;
-  }
+/* Explicit themes override the system preference. */
+.mdx-memory__panel:where([data-theme="dark"] *) {
+  --memory-surface: #252a31;
+  --memory-border: #505862;
+  --memory-text: #e0e5eb;
+  --memory-hover: #343c47;
+  --memory-selected: #384e69;
 }
+.mdx-memory__panel:where([data-theme="dark"] *) button[data-grade="1"] { --grade-color: #ff9199; }
+.mdx-memory__panel:where([data-theme="dark"] *) button[data-grade="2"] { --grade-color: #ffba73; }
+.mdx-memory__panel:where([data-theme="dark"] *) button[data-grade="3"] { --grade-color: #87d99c; }
+.mdx-memory__panel:where([data-theme="dark"] *) button[data-grade="4"] { --grade-color: #8cbfff; }
 
-/* 深色主题支持 */
 @media (prefers-color-scheme: dark) {
-  .mdx-memory__panel {
-    background-color: #2d2d2d;
-    border-color: #444;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  .mdx-memory__panel:where(:not([data-theme="light"] *)) {
+    --memory-surface: #252a31;
+    --memory-border: #505862;
+    --memory-text: #e0e5eb;
+    --memory-hover: #343c47;
+    --memory-selected: #384e69;
   }
-
-  .mdx-memory__panel button[data-grade="1"] {
-    background-color: #4a1a1a;
-    color: #ef5350;
-  }
-
-  .mdx-memory__panel button[data-grade="2"] {
-    background-color: #4a3c1a;
-    color: #ff9800;
-  }
-
-  .mdx-memory__panel button[data-grade="3"] {
-    background-color: #1a4d2e;
-    color: #66bb6a;
-  }
-
-  .mdx-memory__panel button[data-grade="4"] {
-    background-color: #1a3a52;
-    color: #42a5f5;
-  }
-}
-
-/* Display actions stay distinct from the four review grades. */
-.mdx-memory__panel button[data-display] {
-  background-color: transparent;
-  color: inherit;
-  border: 1px solid currentColor;
-}
-
-.mdx-memory__panel button[data-display][aria-pressed="true"] {
-  outline: 2px solid currentColor;
-  outline-offset: 1px;
+  .mdx-memory__panel:where(:not([data-theme="light"] *)) button[data-grade="1"] { --grade-color: #ff9199; }
+  .mdx-memory__panel:where(:not([data-theme="light"] *)) button[data-grade="2"] { --grade-color: #ffba73; }
+  .mdx-memory__panel:where(:not([data-theme="light"] *)) button[data-grade="3"] { --grade-color: #87d99c; }
+  .mdx-memory__panel:where(:not([data-theme="light"] *)) button[data-grade="4"] { --grade-color: #8cbfff; }
 }
