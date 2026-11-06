@@ -1,5 +1,6 @@
 const icon = (path: string) => `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${path}"/></svg>`;
 export const ACTION_ICONS = {
+    list: icon('M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01'),
     pin: icon('m16 3 5 5-4 1-3 5v3h-3l-5-5-3 1 5-5 1-4Z M9 15l-6 6'),
     lock: icon('M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4M12 15v2'),
     sidebar: icon('M3 3h18v18H3zM9 3v18'),

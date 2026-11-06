@@ -2,6 +2,7 @@
  * @file mdx/plugins/ui/titlebar.plugin.ts
  */
 
+import {mountOutlinePopup} from '@nestos/ui-common';
 import {mountTitlebarActions} from './titlebar-actions';
 import {mountTitleBar as mountSharedTitleBar, type ContentTitleBarParts} from '@nestos/ui-common';
 import type { MDxPlugin, PluginContext } from '../../core/types';
@@ -352,10 +353,12 @@ export class CoreTitleBarPlugin implements MDxPlugin {
     leftGroup.appendChild(leftFragment);
     leftGroup.appendChild(titleContainer);
     this.cleanupActions?.();
-    this.cleanupActions = mountTitlebarActions(rightGroup, rightFragment, {overflow: this.options.overflowActions,
-      inlineActions: this.options.inlineActions ?? ['copy-content', 'save-action'],
+    this.cleanupActions = mountTitlebarActions(rightGroup, rightFragment, {overflow: this.options.overflowActions ?? true,
+      inlineActions: this.options.inlineActions ?? ['copy-content'],
       label: this.translate('editor.moreActions'), mount: this.options.mountActions, order: this.options.actionOrder,
       mountMore: this.options.mountMoreMenu ? (container, primary) => this.options.mountMoreMenu!(container, editor, primary) : undefined});
+
+    this.mountOutline(rightGroup, editor);
 
     // 清空并重建标题栏
     titleBar.innerHTML = '';
@@ -368,6 +371,24 @@ export class CoreTitleBarPlugin implements MDxPlugin {
     } else {
       titleBar.style.display = '';
     }
+  }
+
+  private mountOutline(container: HTMLElement, editor: MDxEditor): void {
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'mdx-editor-titlebar__button';
+    button.dataset.buttonId = 'outline';
+    button.innerHTML = ACTION_ICONS.list;
+    button.title = this.translate('editor.outline.label');
+    button.setAttribute('aria-label', button.title);
+    const copy = container.querySelector('[data-button-id="copy-content"]');
+    if (copy) copy.after(button); else container.prepend(button);
+    this.cleanupButtons.push(mountOutlinePopup(button, {
+      label: button.title, emptyLabel: this.translate('editor.outline.empty'), errorLabel: this.translate('editor.outline.error'),
+      expandLabel: this.translate('editor.outline.expand'), collapseLabel: this.translate('editor.outline.collapse'),
+      read: async () => (await editor.getHeadings()).filter(item => item.level <= 3).map(item => ({id: item.id, label: item.text, level: item.level})),
+      select: id => editor.navigateTo({elementId: id}),
+      onDiagnostic: event => {console[event.result === 'failure' ? 'warn' : 'debug']('[MDxOutline]', event);},
+    }));
   }
 
   private mountHostTitleBar(root: HTMLElement, left: HTMLElement, right: HTMLElement, editor: MDxEditor): void {

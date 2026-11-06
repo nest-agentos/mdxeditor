@@ -1,3 +1,4 @@
+import {headingRecords} from './heading-records';
 import type { Heading } from '../editor/contracts';
 interface ParsedMarkdownContent { linesOutsideCode: string[]; textOutsideCode: string; allLines: string[]; }
 
@@ -60,10 +61,7 @@ function appendHeading(headings: Heading[], stack: Heading[], heading: Heading):
 export function extractHeadings(content: string, options: { nested?: boolean } = {}): Heading[] {
     const headings: Heading[] = [], stack: Heading[] = [];
     const slugCount = new Map<string, number>();
-    for (const line of parseMarkdownContent(content).linesOutsideCode) {
-        const match = line.match(/^(#{1,6})\s+(.+)/);
-        if (!match || !match[2].trim()) continue;
-        const text = match[2].trim(), level = match[1].length;
+    for (const {text, level} of headingRecords(content)) {
         const baseSlug = `heading-${slugify(text)}`, count = slugCount.get(baseSlug) ?? 0;
         slugCount.set(baseSlug, count + 1);
         const heading = { level, text, id: count ? `${baseSlug}-${count}` : baseSlug, children: [] };

@@ -1,3 +1,5 @@
+import {headingRecords} from '../utils/heading-records';
+import {revealRenderedContent} from '../renderer/reveal-content';
 // @mdx/editor/navigation.ts
 import { extractHeadings, slugify, tryParseJson, type Heading } from '../utils/markdown';
 import { CodeMirrorAdapter } from './codemirror-adapter';
@@ -53,25 +55,10 @@ export class NavigationManager {
             return positions;
         }
 
-        // 移除代码块后解析标题
-        const cleaned = text.replace(/```[\s\S]*?```|~~~[\s\S]*?~~~/g, '');
-        const regex = /^(#{1,6})\s+(.+)$/gm;
-        const slugCounts = new Map<string, number>();
-
-        let match: RegExpExecArray | null;
-        while ((match = regex.exec(cleaned)) !== null) {
-            const headingText = match[2].trim();
-            const baseSlug = slugify(headingText);
-            const count = slugCounts.get(baseSlug) || 0;
-            slugCounts.set(baseSlug, count + 1);
-
-            const finalSlug = count === 0 ? baseSlug : `${baseSlug}-${count}`;
-            positions.set(`heading-${finalSlug}`, {
-                from: match.index,
-                to: match.index + match[0].length,
-                level: match[1].length,
-                text: headingText,
-            });
+        const counts = new Map<string, number>();
+        for (const heading of headingRecords(text)) {
+            const base = `heading-${slugify(heading.text)}`, count = counts.get(base) ?? 0;
+            counts.set(base, count + 1); positions.set(count ? `${base}-${count}` : base, heading);
         }
 
         this.positionsCache = { version: docVersion, positions };
@@ -81,18 +68,13 @@ export class NavigationManager {
     // === 渲染器内导航 ===
 
     async navigateInRenderer(container: HTMLElement, elementId: string, smooth: boolean): Promise<void> {
-        try {
-            const element = container.querySelector(`#${CSS.escape(elementId)}`) ?? container.querySelector(`#${CSS.escape("heading-" + elementId)}`);
-            if (!element) {
-                console.warn(`[Navigation] Element not found: #${elementId}`);
-                return;
-            }
-            element.scrollIntoView({ behavior: smooth ? 'smooth' : 'instant', block: 'center' });
-            element.classList.add('highlight-pulse');
-            setTimeout(() => element.classList.remove('highlight-pulse'), 1500);
-        } catch (e) {
-            console.error('[Navigation] Renderer navigation error:', e);
-        }
+        const element = container.querySelector<HTMLElement>(`#${CSS.escape(elementId)}`)
+            ?? container.querySelector<HTMLElement>(`#${CSS.escape('heading-' + elementId)}`);
+        if (!element) throw new Error('OUTLINE_TARGET_MISSING');
+        revealRenderedContent(element, container); element.tabIndex = -1; element.focus({preventScroll: true});
+        element.scrollIntoView({behavior: smooth ? 'smooth' : 'instant', block: 'center'});
+        this.clearHighlightTimer(); element.classList.add('highlight-pulse');
+        this.highlightTimer = window.setTimeout(() => {element.classList.remove('highlight-pulse'); this.highlightTimer = null;}, 1500);
     }
 
     // === 编辑器内导航 ===
@@ -106,20 +88,8 @@ export class NavigationManager {
         const positions = this.getPositions(text, docVersion);
         let position = positions.get(elementId) ?? positions.get("heading-" + elementId);
 
-        // 模糊匹配回退
         if (!position) {
-            const baseId = elementId.replace(/-\d+$/, '');
-            for (const [id, pos] of positions) {
-                if (id === baseId || id.startsWith(baseId + '-')) {
-                    position = pos;
-                    break;
-                }
-            }
-        }
-
-        if (!position) {
-            console.warn(`[Navigation] Heading not found: ${elementId}`);
-            return;
+            throw new Error('OUTLINE_SOURCE_TARGET_MISSING');
         }
 
         const { from, to } = position;

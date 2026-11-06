@@ -353,3 +353,7 @@ list.destroy(); await reader.destroy(); item.destroy();
 `ContentListView.sync` 按稳定 ID 排列已创建的视图，保留其 DOM 与折叠状态；`layout: 'host'` 将分组布局留给宿主。重复 ID 拒绝且不改变现有列表。`configureSelection` 可替换或移除选区动作，`setActive(false)` 暂停入口并终止在途观察。默认双语控件文案可由 `locale` 或 `labels` 覆盖。
 
 选区回调接收不可变的 `text` 与有序 `items: [{id, text}]`；排除标题、菜单、隐藏内容和折叠正文。仅在点击 AI 按钮时调用回调，失败后的同一选区复用对象；宿主持有创建与提交身份。正文不被复制进诊断，取消信号只属于观察生命周期，不表示取消远端执行。
+
+标题栏默认提供复制、目录和更多；宿主已有的向上导航继续位于目录之后、更多之前；保存、打印等次要操作保留在更多菜单。文内目录通过 ui-common 的 `OutlineView`/`mountOutlinePopup` 展示 H1–H3，编辑与阅读模式共用 Markdown 标题身份；重复标题、Setext 标题与代码块之后的源码定位保持一致。三级标题默认收起，桌面鼠标悬停二级展开，触屏使用独立展开按钮，键盘支持方向键、Home/End 与 Escape。
+
+`ContentListItem.outlineName` 是可选的窗口目录名称，与稳定的 `id` 分离；`ContentListView.getOutline()` 和 `reveal(id)` 复用公共 `WindowOutline`，定位时展开目标内容框。无名称的窗口不进入目录；更新列表和销毁会释放旧引用。业务名称由调用方配置，核心不解释用户、回复或邮件。

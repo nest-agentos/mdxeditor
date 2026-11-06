@@ -39,12 +39,14 @@ export class MarkedAdapter {
 
     private configure(marked: Marked, extensions: any[], markedOptions?: any): void {
         // 标题渲染器：生成带 ID 的标题
+        const counts = new Map<string, number>();
         const renderer = {
             heading(this: any, token: Tokens.Heading): string {
                 const text = token.text;
                 const level = token.depth;
                 const cleanText = text.replace(/<[^>]*>/g, '');
-                const id = `heading-${slugify(cleanText)}`;
+                const base = `heading-${slugify(cleanText)}`, count = counts.get(base) ?? 0;
+                counts.set(base, count + 1); const id = count ? `${base}-${count}` : base;
                 return `<h${level} id="${id}">${this.parser.parseInline(token.tokens)}</h${level}>`;
             }
         };
