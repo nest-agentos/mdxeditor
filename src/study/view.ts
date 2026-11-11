@@ -1,3 +1,4 @@
+import {formatClockTime} from '@nestos/ui-common';
 import type {StudyCard, StudyHost, StudyChange, StudyEntry, StudyCreationState} from './contracts';
 import {studyDue} from './cards';
 import {loadStudyCatalog, reloadStudyProgress, studyCounts, type StudyCatalog, type StudyItem} from './catalog';
@@ -154,7 +155,7 @@ export class StudyView {
     private dueAt(item: StudyItem): number {return item.state ? Date.parse(item.state.dueAt ?? '') || 0 : Infinity;}
     private wait(items: StudyItem[]): void {
         const due = Math.min(...items.map(value => Date.parse(value.state!.dueAt!)));
-        this.body.append(element('p', 'mdx-study__hint', new Date(due).toLocaleTimeString(this.host.locale ?? 'zh-CN')));
+        this.body.append(element('p', 'mdx-study__hint', formatClockTime(new Date(due), this.host.locale ?? 'zh-CN')));
         this.timer = setTimeout(() => this.next(), Math.min(Math.max(1000, due - this.now()), 60_000));
     }
     private empty(title: string, hint: string): void {

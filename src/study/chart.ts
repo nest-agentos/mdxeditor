@@ -1,3 +1,4 @@
+import {formatCalendarDate} from '@nestos/ui-common';
 import type {StudyText} from './locale';
 import {element, studyButton} from './dom';
 import {progressSeries, type ProgressDocument, type ProgressPoint, type ProgressRange} from './progress-data';
@@ -64,7 +65,7 @@ function grid(plot: SVGSVGElement, max: number, activity: boolean): void {
         label.textContent = activity ? Number((ratio * max).toFixed(1)).toString() : Math.round(ratio * 100) + '%'; plot.append(label);
     }
 }
-function date(at: number, locale: string): string {return new Date(at).toLocaleDateString(locale, {year: 'numeric', month: 'short', day: 'numeric'});}
+function date(at: number, locale: string): string {return formatCalendarDate(new Date(at), locale, {year: 'numeric', month: 'short', day: 'numeric'});}
 function describe(output: HTMLOutputElement, slider: HTMLInputElement, point: ProgressPoint, documents: number, w: StudyText, locale: string): void {
     const percentage = point.total ? Math.round(point.learned / point.total * 100) : 0;
     const label = date(point.from, locale) === date(point.at, locale) ? date(point.at, locale) : `${date(point.from, locale)} – ${date(point.at, locale)}`;

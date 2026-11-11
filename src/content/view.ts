@@ -1,5 +1,6 @@
+import {localDateTimeInput,formatDateTime,copyText} from '@nestos/ui-common';
 import {t} from '../utils/i18n';
-import {copyText} from '@nestos/ui-common';
+
 export interface ContentTime {value: number; label: string}
 export interface ContentViewOptions {
     title?: string; subtitle?: string; preview?: string; avatar?: string; variant?: 'card' | 'plain'; expanded?: boolean;
@@ -89,13 +90,13 @@ export class ContentView {
         if (!valid(primary)) return;
         const date = new Date(primary.value);
         this.time.dateTime = date.toISOString();
-        const today = new Date(), sameDay = date.toDateString() === today.toDateString();
-        this.time.textContent = `${primary.label} ${date.toLocaleString(locale, {hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+        const today = new Date(), sameDay = localDateTimeInput(date).slice(0,10) === localDateTimeInput(today).slice(0,10);
+        this.time.textContent = `${primary.label} ${formatDateTime(date, locale, {hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
             ...(!sameDay ? {year: 'numeric', month: '2-digit', day: '2-digit'} as const : {})})}`;
-        this.timeSummary.setAttribute('aria-label', `${this.labels.details}: ${date.toLocaleString(locale)}`);
+        this.timeSummary.setAttribute('aria-label', `${this.labels.details}: ${formatDateTime(date, locale)}`);
         for (const item of [primary, ...details].filter(valid)) {
             const label = document.createElement('dt'), value = document.createElement('dd');
-            label.textContent = item.label; value.textContent = new Date(item.value).toLocaleString(locale);
+            label.textContent = item.label; value.textContent = formatDateTime(new Date(item.value), locale);
             this.timeDetails.append(label, value);
         }
     }
