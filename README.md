@@ -269,7 +269,7 @@ const editor = await createMDxEditor(document.getElementById('editor-container')
 
 `saveContent` 是宿主自己的保存函数。`EditorHost` 提供可选的打开文档、重命名和通知；`StoreFactory` 提供插件存储，默认使用内存。核心默认按 Markdown 处理，纯文本需显式传入 `contentFormat: 'text'`。
 
-[MindOS](https://github.com/mushuanli/itookit) 使用 `@nestos/mdx-adapter` 的 `createMDxEditor` / `defaultEditorFactory`，接收 `ui-common` 的 `EditorOptions`，校验 namespace/Session 上下文并适配 VFS、附件、插件元数据及文件格式。`AssetManagerUI` 和 `LLMPrintService` 也由适配包导出。外部移动文件后调用适配实例的 `updateNodeId(newPath)`，更新后续保存、附件与元数据的文档路径。
+[NestOS](https://github.com/mushuanli/NestOS) 使用 `@nestos/mdx-adapter` 的 `createMDxEditor` / `defaultEditorFactory`，接收 `ui-common` 的 `EditorOptions`，校验 namespace/Session 上下文并适配 VFS、附件、插件元数据及文件格式。`AssetManagerUI` 和 `LLMPrintService` 也由适配包导出。外部移动文件后调用适配实例的 `updateNodeId(newPath)`，更新后续保存、附件与元数据的文档路径。
 
 适配包目前在 monorepo 内使用；独立用户可直接实现核心公共接口。适配包样式：`import '@nestos/mdx-adapter/style.css'`。
 
@@ -317,7 +317,7 @@ pnpm pack
 npm publish --access public
 ```
 
-包根提供 ESM、CommonJS 和 TypeScript 声明；样式从 `@nestos/mdxeditor/style.css` 导入。源码与测试独立维护于本仓库，MindOS 通过 npm 的固定版本接入。
+包根提供 ESM、CommonJS 和 TypeScript 声明；样式从 `@nestos/mdxeditor/style.css` 导入。源码与测试独立维护于本仓库，NestOS 通过 npm 的固定版本接入。
 
 ### 打印文件名
 
