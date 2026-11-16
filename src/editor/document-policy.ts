@@ -14,13 +14,16 @@ function largeDocumentReason(text: string): DocumentProfile['largeReason'] {
 }
 
 /** The host selects the format; the standalone editor defaults to Markdown. */
-export function documentFormat(options: EditorOptions): 'markdown' | 'text' {
+export function documentFormat(options: EditorOptions): 'markdown' | 'text' | 'html' {
+    if (options.documentPath && options.resolveContentFormat) return options.resolveContentFormat(options.documentPath);
     if (options.contentFormat) return options.contentFormat;
-    return inferredTextDocument(options) ? 'text' : 'markdown';
+    if (/\.html?$/i.test(options.documentPath ?? '')) return 'html';
+    if (/\.(md|markdown|mdx)$/i.test(options.documentPath ?? '')) return 'markdown';
+    return inferredTextDocument(options) || options.documentPath && !options.language ? 'text' : 'markdown';
 }
 
 export interface DocumentProfile {
-    readonly format: 'markdown' | 'text';
+    readonly format: 'markdown' | 'text' | 'html';
     readonly largeReason?: 'bytes' | 'lines' | 'line-length';
     readonly initialMode: 'edit' | 'render';
     readonly enableMarkdown: boolean;
@@ -30,11 +33,11 @@ export interface DocumentProfile {
 
 export function isLargeDocument(text: string): boolean { return largeDocumentReason(text) !== undefined; }
 
-/** One immutable decision per open; interactive preview remains an explicit user action. */
+/** Recompute the immutable profile on open and document-path changes. */
 export function documentProfile(options: EditorOptions, text: string): DocumentProfile {
     const format = documentFormat(options), largeReason = largeDocumentReason(text);
     return Object.freeze({ format, largeReason,
-        initialMode: format === 'text' ? 'edit' : options.initialMode ?? 'edit',
+        initialMode: format === 'text' ? 'edit' : options.initialMode ?? (format === 'html' ? 'render' : 'edit'),
         enableMarkdown: format === 'markdown' && !largeReason,
         enableLineWrapping: !largeReason,
         showSourceNotice: format === 'markdown' && !!largeReason && options.initialMode !== 'render',

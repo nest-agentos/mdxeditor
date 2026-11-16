@@ -173,15 +173,14 @@ export async function createMDxEditor(
   config: MDxEditorFactoryConfig = {}
 ): Promise<IEditor> {
   const profile = documentProfile(config, config.initialContent ?? '');
-  config = { ...config, contentFormat: profile.format, initialMode: profile.initialMode,
+  config = { ...config,
     defaultPluginOptions: { ...config.defaultPluginOptions } };
   const source = profile.format === 'text';
   const userPlugins = source ? ['core:titlebar', 'interaction:auto-save'] : [...config.plugins || []];
   const defaultOpts = config.defaultPluginOptions || {};
 
   if (source) {
-    config.initialMode = 'edit';
-    defaultOpts['core:titlebar'] = { ...defaultOpts['core:titlebar'], enableToggleEditMode: false, enableAssetManager: false };
+    defaultOpts['core:titlebar'] = { ...defaultOpts['core:titlebar'], enableToggleEditMode: true, enableAssetManager: false };
   }
 
   // 3. 创建编辑器

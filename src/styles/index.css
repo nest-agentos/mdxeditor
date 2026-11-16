@@ -85,3 +85,9 @@
 .mdx-source-notice { margin: 0; padding: 0.5rem 1rem; font-size: 0.875rem; flex: none; }
 .mdx-language-notice { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 8px; margin: 0; padding: 8px 12px; font-size: 14px; }
 .mdx-language-notice button { min-height: 44px; padding: 4px 8px; }
+
+.mdx-html-preview__toolbar { display: flex; align-items: center; gap: 12px; padding: 8px; }
+.mdx-html-preview__toolbar button { flex: none; min-height: 44px; }
+.mdx-html-preview__frame { display: block; border: 0; width: 100%; height: 75vh; min-height: 320px; background: white; }
+
+.mdx-editor-titlebar__button[hidden] { display: none; }

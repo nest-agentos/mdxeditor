@@ -1,3 +1,4 @@
+import {HtmlPreview} from './html-preview';
 import { bindDocumentLinks } from './document-links';
 import { documentProfile, type DocumentProfile } from './document-policy';
 import { t } from '../utils/i18n';
@@ -49,6 +50,8 @@ export class MDxEditor implements IEditor {
     private destruction?: Promise<void>;
     private profile?: DocumentProfile;
     private docVersion = 0;
+    private profileGeneration = 0;
+    private htmlPreview = new HtmlPreview(key => this.config.translate?.(key) ?? t(key, this.config.locale));
     private renderLineWrapping = false;
     private releaseDocumentLinks?: () => void;
 
@@ -106,7 +109,7 @@ export class MDxEditor implements IEditor {
         );
 
         if (this.config.readOnly) this.cmAdapter.setReadOnly(true);
-        if (profile.format === 'text') void this.cmAdapter.configureCodeLanguage({...this.config, enabled: !profile.largeReason}, failed => this.languageNotice(failed));
+        if (profile.format !== 'markdown') void this.cmAdapter.configureCodeLanguage({...this.config, enabled: !profile.largeReason}, failed => this.languageNotice(failed));
         if (profile.showSourceNotice) {
             const notice = document.createElement('p');
             notice.className = 'mdx-source-notice'; notice.setAttribute('role', 'status');
@@ -176,6 +179,8 @@ export class MDxEditor implements IEditor {
         this.cmAdapter.setText(markdown);
         this.saveManager.setDirty(false);
 
+        if (this.isDestroying || this.getMode() !== 'render') return;
+        if (this.profile?.format !== 'markdown') {await this.renderContent(); return;}
         const renderContainer = this.modeManager.getRenderContainer();
         if (renderContainer && this.modeManager.getMode() === 'render') {
             await this.renderer.renderStreaming(renderContainer, markdown);
@@ -197,6 +202,10 @@ export class MDxEditor implements IEditor {
         // 取消待执行的防抖渲染，防止 finalize 后被覆盖
         this.modeManager.cancelDebounce();
 
+        if (this.profile?.format !== 'markdown') {
+            if (this.getMode() === 'render') await this.renderContent();
+            return;
+        }
         const renderContainer = this.modeManager.getRenderContainer();
         if (renderContainer && this.modeManager.getMode() === 'render') {
             await this.renderer.finishStreaming(renderContainer, finalMarkdown);
@@ -222,6 +231,8 @@ export class MDxEditor implements IEditor {
      * 内部方法：执行流式渲染
      */
     private async renderStreamingContent(markdown: string): Promise<void> {
+        if (this.isDestroying || this.getMode() !== 'render') return;
+        if (this.profile?.format !== 'markdown') {await this.renderContent(); return;}
         const renderContainer = this.modeManager.getRenderContainer();
         if (renderContainer) {
             await this.renderer.renderStreaming(renderContainer, markdown);
@@ -259,11 +270,13 @@ export class MDxEditor implements IEditor {
 
     async switchToMode(mode: 'edit' | 'render'): Promise<void> {
         if ((this.profile?.format ?? this.config.contentFormat) === 'text' && mode === 'render') return;
-        if (mode === 'edit') this.renderer.cancelPending();
         if (this.modeManager.getMode() === mode) return;
+        const generation = this.profileGeneration;
         if (this.isDirty()) {
             await this.save();
         }
+        if (generation !== this.profileGeneration || this.isDestroying || !this._container) return;
+        if (mode === 'edit') {this.modeManager.cancelDebounce(); this.renderer.cancelPending(); this.htmlPreview.destroy();}
         await this.modeManager.switchTo(mode, this._container!, () => this.renderContent());
         if (this.modeManager.getMode() !== mode) return;
         this.renderer.getPluginManager().emit('modeChanged', { mode });
@@ -391,7 +404,12 @@ export class MDxEditor implements IEditor {
     }
 
     private async renderContent(): Promise<void> {
+        if (this.isDestroying) return;
         const renderContainer = this.modeManager.getRenderContainer();
+        if (renderContainer && this.profile?.format === 'html') {
+            this.renderer.cancelPending();
+            return this.htmlPreview.render(renderContainer, this.getText(), () => this.renderContent());
+        }
         if (renderContainer && (this.profile?.format ?? this.config.contentFormat) === 'text') {
             const source = document.createElement('pre'); source.textContent = this.getText();
             renderContainer.replaceChildren(source); return;
@@ -430,10 +448,33 @@ export class MDxEditor implements IEditor {
         this.renderer.getPluginManager().setDocumentPath(newNodeId);
         this.config.documentPath = newNodeId;
         this.config.onDocumentPathChange?.(newNodeId);
+        this.updateDocumentProfile();
 
         this.printService?.destroy?.();
         this.printService = null;
     };
+
+    getDocumentFormat(): DocumentProfile['format'] {return this.profile?.format ?? 'markdown';}
+
+    private updateDocumentProfile(): void {
+        ++this.profileGeneration;
+        const previous = this.profile;
+        this.profile = documentProfile(this.config, this.getText());
+        this.htmlPreview.destroy(); this.renderer.cancelPending(); this.modeManager.cancelDebounce();
+        this.cmAdapter.configureMarkdown(this.profile.enableMarkdown);
+        if (this.profile.format !== 'markdown') void this.cmAdapter.configureCodeLanguage(
+            {...this.config, enabled: !this.profile.largeReason}, failed => this.languageNotice(failed));
+        if (previous?.format === this.profile.format) {
+            if (this.getMode() === 'render') void this.renderContent();
+            return;
+        }
+        const mode = this.profile.initialMode;
+        void this.modeManager.switchTo(mode, this._container!, () => this.renderContent()).then(() => {
+            if (this.isDestroying || !this._container) return;
+            this.renderer.getPluginManager().emit('modeChanged', {mode: this.getMode()});
+            this.eventBus.emit('modeChanged', {mode: this.getMode()});
+        });
+    }
 
     async pruneAssets(): Promise<number | null> {
         const cmd = this.renderer.getPluginManager().getCommand('pruneAssets');
@@ -457,7 +498,7 @@ export class MDxEditor implements IEditor {
         return this.printService;
     }
 
-    cancelPendingRender(): void { this.renderer.cancelPending(); }
+    cancelPendingRender(): void { this.renderer.cancelPending(); this.htmlPreview.destroy(); }
 
     async activate(): Promise<void> {
         if (this._container && this.getMode() === 'render') await this.renderContent();
@@ -484,10 +525,12 @@ export class MDxEditor implements IEditor {
     private async destroyNow(): Promise<void> {
         this.renderer.cancelPending();
         this.isDestroying = true;
+        ++this.profileGeneration;
 
         try { await this.flushPendingSave(); }
         catch (error) { this.isDestroying = false; throw error; }
         this.renderer.getPluginManager().emit('beforeDestroy', undefined);
+        this.htmlPreview.destroy();
         this.releaseDocumentLinks?.();
         this.navigationManager.destroy();
         this.modeManager.destroy();

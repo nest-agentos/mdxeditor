@@ -196,6 +196,11 @@ export class CodeMirrorAdapter {
         return this.view;
     }
 
+    configureMarkdown(enabled: boolean): void {
+        ++this.languageGeneration;
+        this.view?.dispatch({effects: this.languageCompartment.reconfigure(enabled ? markdown() : [])});
+    }
+
     async configureCodeLanguage(request: CodeLanguageRequest, status?: (failed: boolean) => void,
         load?: () => Promise<LanguageSupport>): Promise<void> {
         const generation = ++this.languageGeneration, view = this.view;

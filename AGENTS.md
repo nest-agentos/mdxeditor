@@ -85,3 +85,5 @@ TitleBarPlugin passes the original toggle-edit-mode button through ContentTitleB
 
 
 通用阅读框架位于 `src/content/`：ContentView 负责标题/时间详情/折叠/复制/更多菜单，ContentReader 负责纯文本或插件化 Markdown 阅读，ContentListView 负责稳定排列及可选选区动作的生命周期。业务角色、默认折叠策略、分页和 Session 创建留在宿主。正文槽可挂载完整 MDxEditor，不改变既有编辑、预览和插件接口。选区入口只在明确点击时调用冻结选区回调；排除隐藏正文，失败重试保持选区对象，隐藏/销毁只中止观察。
+
+HTML 文档由 html-policy 纯解析过滤后，以禁止原生脚本的双层 iframe 展示（仅 allow-same-origin，绝不同时开放 allow-scripts）。内联代码在独立 QuickJS realm 执行，html-dom 仅桥接 JSON 与本预览节点 ID，核对 ownerDocument 并共用初始/动态策略。不得传递浏览器对象、原型或任意 native 调用；禁止网络不能仅依赖删除构造器。VM 与节点/监听/计时器/Promise/回调预算有界；刷新、隐藏、格式变更、源码切换与销毁统一释放。原始 HTML 不被预览包装或 DOM 改写保存；宿主文件别名通过 resolveContentFormat 重算。

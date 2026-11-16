@@ -9,8 +9,8 @@ export default defineConfig({
         cssCodeSplit: false,
         sourcemap: true,
         rollupOptions: {
-            external: ['@nestos/ui-common', /^@codemirror\//, 'codemirror', 'marked', 'mermaid', 'front-matter', 'gray-matter'],
-            output: { globals: {'@nestos/ui-common': 'ItookitUICommon', '@codemirror/language-data': 'CM.languageData', codemirror: 'CodeMirror', marked: 'marked', mermaid: 'mermaid',
+            external: ['parse5', 'quickjs-emscripten-core', '@jitl/quickjs-singlefile-browser-release-sync', '@nestos/ui-common', /^@codemirror\//, 'codemirror', 'marked', 'mermaid', 'front-matter', 'gray-matter'],
+            output: { globals: {parse5: 'parse5', '@nestos/ui-common': 'ItookitUICommon', '@codemirror/language-data': 'CM.languageData', codemirror: 'CodeMirror', marked: 'marked', mermaid: 'mermaid',
                 'front-matter': 'fm', 'gray-matter': 'gm',
                 '@codemirror/state': 'CM.state', '@codemirror/view': 'CM.view', '@codemirror/commands': 'CM.commands',
                 '@codemirror/language': 'CM.language', '@codemirror/autocomplete': 'CM.autocomplete',

@@ -35,7 +35,9 @@ export interface EditorOptions {
     initialContent?: string;
     onSave?: (content: string) => Promise<void>;
     initialMode?: 'edit' | 'render';
-    contentFormat?: 'markdown' | 'text';
+    contentFormat?: 'markdown' | 'text' | 'html';
+    /** Recompute host document aliases after a path change. */
+    resolveContentFormat?: (path: string) => 'markdown' | 'text' | 'html';
     title?: string;
     language?: string;
     locale?: 'zh-CN' | 'en';

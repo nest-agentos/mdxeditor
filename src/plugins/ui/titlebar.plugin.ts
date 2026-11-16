@@ -421,6 +421,7 @@ export class CoreTitleBarPlugin implements MDxPlugin {
 
   private updateModeButton(mode: 'edit' | 'render'): void {
     if (!this.toggleModeBtn) return;
+    this.toggleModeBtn.hidden = this.editor?.getDocumentFormat() === 'text';
 
     if (mode === 'edit') {
       this.toggleModeBtn.title = '切换到阅读模式';
